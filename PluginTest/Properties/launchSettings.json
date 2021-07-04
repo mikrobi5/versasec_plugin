@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "PluginTest": {
+      "commandName": "Project",
+      "commandLineArgs": "<< test.txt"
+    }
+  }
+}

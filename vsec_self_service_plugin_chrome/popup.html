@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<!--
+ * Copyright 2013 The Chromium Authors. All rights reserved.  Use of this
+ * source code is governed by a BSD-style license that can be found in the
+ * LICENSE file.
+-->
+
+<html>
+  <head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <script src='./background.js'></script>
+    <script src='./popup.js'></script>
+	<link rel="stylesheet" type="text/css" href="./plugin_style.css">
+  <body>
+  <div id="head">
+    <!-- <button id='connect-button'>Connect</button> -->
+	<div id="status" ></div>
+    </div>
+    <div id="body">
+    <div>
+	  <button id='send_message_get_card_readers'>Get Readers</button>
+    </div>
+	<div class="dropdown_readers" id="dropdown_readers_main">
+		<button class="dropbtn" id="dropdown_readers_button">Readers</button>
+		<div class="dropdown-content" id="readers_dropdown">
+			
+		</div>
+	</div> 
+  <div id="card_functions" class="card_functions" value="0">
+     <div>  
+      <button id='send-message-get-card-id'>Get CardId</button>
+	  <input id='cardId' type='text' />
+	  </div>
+	  <div>
+	 <button id='send-message-get-retry-counter'>Get Retry Counter</button>
+	  <input id='retryCounter' type='text' />
+	  </div>
+	  <div>
+	 <button id='send-message-login'>Login</button>
+	  <input id='login' type='text' />
+	  </div>
+	  <div>
+	 <button id='send-message-reset-pin'>Reset Pin</button>
+	  <input id='resetPin' type='text' />
+	  </div>
+	  <div>
+     <button id='send-message-set-new-pin'>Set new Pin</button>
+	  <input id='oldPin' type='text' />
+	  <input id='newPin' type='text' />
+	  </div> 
+	</div>
+</div> 
+   <div id="snackbar_positive"><p id="sp_text"></p></div>
+   <div id="snackbar_negative"><p id="sn_text"></p></div>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "DotNetCmsCoreWrapper": {
+      "commandName": "Executable",
+      "executablePath": "E:\\Projects\\VSec\\browser_plugin\\VsecNativeMessageHostConsoleNetCore\\native-messaging-example-host\\CmsCoreBridge\\bin\\x64\\Debug\\netcoreapp3.1\\CmsCoreBridge.exe",
+      "nativeDebugging": true
+    }
+  }
+}

@@ -1,0 +1,535 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Diagnostics" #>
+<#@ import namespace="System.Text.RegularExpressions" #>
+
+<#@ include file="TemplateFileManagerV2.1.ttinclude" #> 
+<#
+      string absolutePath = Host.ResolvePath("natives\\CmsCoreDll_exports.h");
+      Trace.WriteLine(string.Format("{0}", absolutePath));
+            var contents = File.ReadAllLines(absolutePath);
+            // process file contents here, we'll simply dump it to the output here
+            // int counter = 0;
+            Dictionary<string, StringBuilder> sepStructs = new Dictionary<string, StringBuilder>();
+            Dictionary<string, StringBuilder> sepEnums = new Dictionary<string, StringBuilder>();
+            Dictionary<string, StringBuilder> sepClasses = new Dictionary<string, StringBuilder>();
+            Dictionary<string, string> _typeWrapper = new Dictionary<string, string>() {
+            { "DWORD", "NativeUnsignedInteger" },
+            { "HCMSCOREINST", "NativeUnsignedInteger" },
+            { "CMSCORE_ERR", "NativeUnsignedInteger" },
+            { "LPWSTR", "IntPtr" },
+            { "LPCWSTR", "IntPtr" },
+            { "UINT", "NativeUnsignedInteger" },
+            { "fkt_alloc", "CmsCallback" },
+            { "LPBYTE", "IntPtr" },
+            { "LPbyte", "IntPtr" },
+            { "bool", "bool" },
+            { "int", "NativeInteger" },
+            { "long", "NativeInteger" },
+            { "BYTE", "byte" },
+            { "size_t", "NativeUnsignedInteger" },
+            { "class", "public abstract class" },
+            { "typedef struct", "public class" },
+            { "public:", "" },
+            { "virtual", "public abstract" },
+            { " = 0;", ";" },
+            { "{}", ";" },
+            { "NULL", "null" },
+            { "ICmsCoreCard", "IntPtr " },
+            { "ICmsCoreCardList", "IntPtr" },
+            { "ICmsCoreBasicPcsc", "IntPtr" },
+            { "ICmsCoreReaderList", "IntPtr" },
+            { "ICmsCoreCardStatusChangeNotify", "IntPtr" },
+            { "ICmsCoreProgress", "IntPtr" },
+            { "IHttpSend", "IntPtr" },
+            { "CONTAINER_ID", "NativeUnsignedInteger" },
+            { "HWND", "IntPtr" },
+            { "PIN_ID", "NativeUnsignedInteger" },
+            { "PIN_SET", "NativeUnsignedInteger" },
+            { "typedef", "public" },
+            { "wchar_t", "string" },
+            { "[512]", "" },
+            };
+            StringBuilder sbWrapper = new StringBuilder();
+            StringBuilder sbFunction = new StringBuilder();
+            StringBuilder classes = new StringBuilder();
+            StringBuilder structs = new StringBuilder();
+            StringBuilder enums = new StringBuilder();
+            List<string> senum = new List<string>();
+            var guid = "";
+            var constAction = "";
+            var className = "";
+            string structName = "";
+            Regex tab = new Regex(@"\t+");
+            Regex enumEnd = new Regex(@"}\s*(\w*);");
+            Regex structEnd = new Regex(@"}\s*(\w*),*\s*\**(\w*)");
+            Regex pointer = new Regex(@"(\w*)\s*\*{1,2}");
+            Regex reference = new Regex(@"(\w*)\s*\&");
+            Regex nullableReference = new Regex(@"\((.+)\s.+=.+\s*,");
+            bool isClass = false;
+            bool isStruct = false;
+            bool isEnum = false;
+            int bracesCounter = 0;
+            foreach (var line in contents)
+            {
+                if (line.Contains("#define")) continue;
+                var untabbedLine = tab.Replace(line, " ");
+                if (untabbedLine.StartsWith("CmsCore_API bool") && !isClass && !isStruct)
+                {
+                    sbFunction.Append("[DllImport(_cmsCoreLib)]");
+                    sbFunction.Append(Environment.NewLine);
+
+                    var newLine = untabbedLine.Replace("CmsCore_API", "public static extern");
+
+                    var splittedUp = newLine.Split(new char[] { '(', ',', ')' });
+
+                    StringBuilder method = new StringBuilder();
+                    method.Append(splittedUp[0]);
+                    method.Append("(");
+                    for (int i = 1; i < splittedUp.Length - 1; i++)
+                    {
+                        var objectNameSplitted = splittedUp[i].Trim().Split(new char[] { ' ' });
+                        var variableName = "";
+                        var objectName = "";
+                        if (objectNameSplitted.Length > 1)
+                        {
+                            variableName = objectNameSplitted[1].Trim();
+                            objectName = objectNameSplitted[0].Trim();
+                        }
+                        else
+                        {
+                            objectName = splittedUp[i].Trim();
+                        }
+                        if (objectName.Contains("*"))
+                        {
+                            var objectSplit = objectName.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
+                            objectName = objectSplit[0].Trim();
+                            
+                            if (string.IsNullOrEmpty(variableName))
+                            {
+                                variableName = objectSplit[1].Trim();
+                            }
+                            if(variableName.ToLower().Contains("out"))
+                            {
+                                method.Append(" out ");
+                               objectName = "IntPtr";
+                            }
+                            if(variableName.Equals("pRetErr"))
+                            {
+                                method.Append(" out ");
+                            }
+                        }
+                        if (objectName.Contains("&"))
+                        {
+                            var objectSplit = objectName.Split(new char[] { '&' }, StringSplitOptions.RemoveEmptyEntries);
+                            objectName = objectSplit[0].Trim();
+                            if (string.IsNullOrEmpty(variableName))
+                            {
+                                variableName = objectSplit[1].Trim();
+                            }
+                            method.Append(" ref ");
+                        }
+                        if (_typeWrapper.ContainsKey(objectName))
+                        {
+                            method.Append(_typeWrapper[objectName]);
+                            //method.Append(" ");
+                        }
+                        else{
+                            method.Append(objectName);
+                        }
+                        method.Append(" ");
+                        // _typeWrapper.ContainsKey()
+                        method.Append(variableName);
+                        if (i < splittedUp.Length - 2)
+                            method.Append(",");
+                    }
+                    method.Append(")");
+                    method.Append(splittedUp[splittedUp.Length - 1]);
+
+                    //if (_typeWrapper.Keys.Any(x => line.Contains(x)))
+                    //{
+                    //    foreach (var kvp in _typeWrapper)
+                    //    {
+                    //        if (newLine.Contains(kvp.Key))
+                    //        {
+                    //            newLine = newLine.Replace(kvp.Key, _typeWrapper[kvp.Key]);
+                    //            var pointerMatches = pointer.Match(newLine);
+                    //            var referenceMatches = reference.Match(newLine);
+                    //            if (pointerMatches.Length > 0)
+                    //            {
+                    //                var splittedUp = newLine.Split(new char[] { '(', ',', ')' });
+
+                    //                if (pointerMatches.Value.Contains("uint") || pointerMatches.Value.Contains("ulong"))
+                    //                {
+                    //                    newLine = pointer.Replace(newLine, "out NativeUnsignedInteger ");
+                    //                }
+                    //                else if(pointerMatches.Value.Contains("bool"))
+                    //                {
+
+                    //                }
+                    //                else
+                    //                {
+                    //                    newLine = pointer.Replace(newLine, "out IntPtr ");
+                    //                }
+                    //            }
+                    //            if (referenceMatches.Length > 0)
+                    //            {
+                    //                newLine = reference.Replace(newLine, "ref $1 ");
+                    //            }
+                    //        }
+                    //    }
+                    //}
+
+                    sbFunction.Append(method.ToString());
+                    sbFunction.Append(Environment.NewLine);
+                }
+                if (untabbedLine.StartsWith("class"))
+                {
+                    isClass = true;
+                    className = untabbedLine.Replace("class", "").Replace("{", "").Trim();
+                    classes = new StringBuilder();
+                }
+
+                if (untabbedLine.Contains("typedef struct"))
+                {
+                    isStruct = true;
+                    untabbedLine = untabbedLine.Replace(" _", " ").Replace("{", " ");
+                    structName = untabbedLine.Replace("typedef struct", "").Trim();
+                    structs = new StringBuilder();
+                }
+
+                if (untabbedLine.Contains("typedef enum"))
+                {
+                    isEnum = true;
+                    enums = new StringBuilder();
+                }
+
+                if (isClass)
+                {
+                    var newLine = untabbedLine;
+                    if (newLine.Contains("{") && !newLine.Contains("{}") && bracesCounter == 0)
+                    {
+                        bracesCounter++;
+                        newLine = string.Format("public abstract {0}",newLine);
+                        classes.Append(newLine);
+                        classes.Append(Environment.NewLine);
+                        continue;
+                    }
+
+                    if (_typeWrapper.Keys.Any(x => line.Contains(x)))
+                    {
+                        foreach (var kvp in _typeWrapper)
+                        {
+                            if (newLine.Contains(kvp.Key))
+                            {
+                                newLine = newLine.Replace(kvp.Key, _typeWrapper[kvp.Key]);
+                                var pointerMatches = pointer.Match(newLine);
+                                var referenceMatches = reference.Match(newLine);
+
+                                if (pointerMatches.Length > 0)
+                                {
+                                    newLine = pointer.Replace(newLine, "out $1 ");
+                                }
+                                if (referenceMatches.Length > 0)
+                                {
+                                    newLine = reference.Replace(newLine, "ref $1 ");
+                                }
+                            }
+                        }
+                        var nullRef = nullableReference.Match(newLine);
+                        if (nullRef.Length > 0)
+                        {
+                            newLine = newLine.Replace(nullRef.Groups[1].Value, string.Format("{0}?", nullRef.Groups[1].Value));
+                        }
+                    }
+
+                    if (newLine.Contains(" }") || newLine.Contains("};"))
+                    {
+                        if (bracesCounter > 0)
+                            bracesCounter--;
+                    }
+                    if (newLine.Contains("};") && bracesCounter == 0)
+                    {
+                        isClass = false;
+                    }
+                    newLine = newLine.Replace("};", "}");
+                    if (!newLine.Contains("~"))
+                    {
+                        if (newLine.Contains("{") && newLine.Contains("}") && newLine.Contains("abstract"))
+                        {
+                            newLine = newLine.Replace("abstract", "virtual");
+                        }
+                        classes.Append(newLine);
+                        classes.Append(Environment.NewLine);
+                    }
+                    if (!isClass)
+                    {
+                        sepClasses.Add(string.Format("{0}.cs", className), classes);
+                    }
+                }
+
+                if (isStruct)
+                {
+                    var newLine = untabbedLine;
+                    if (newLine.Contains("{") && !newLine.Contains("{}")) bracesCounter++;
+                    if (_typeWrapper.Keys.Any(x => line.Contains(x)))
+                    {
+
+                        foreach (var kvp in _typeWrapper)
+                        {
+                            if (newLine.Contains(kvp.Key))
+                            {
+                                newLine = newLine.Replace(kvp.Key, _typeWrapper[kvp.Key]);
+                                var pointerMatches = pointer.Match(newLine);
+                                var referenceMatches = reference.Match(newLine);
+                                if (pointerMatches.Length > 0)
+                                {
+                                    newLine = pointer.Replace(newLine, "out $1 ");
+                                }
+                                if (referenceMatches.Length > 0)
+                                {
+                                    newLine = reference.Replace(newLine, "ref $1 ");
+                                }
+                            }
+                        }
+                    }
+                    if (!newLine.Contains("}") && newLine.EndsWith(";") && bracesCounter > 0)
+                    {
+                        newLine = string.Format("public {0}", newLine);
+                    }
+                    if (newLine.Contains(" }") || newLine.Contains("};") || structEnd.IsMatch(newLine)) bracesCounter--;
+                    if (newLine.Contains("}") && newLine.Contains(";") && bracesCounter == 0)
+                    {
+                        isStruct = false;
+                        newLine = structEnd.Replace(newLine, "}");
+                    }
+
+                    //newLine = newLine.Replace("};", "}"); 
+                    structs.Append(newLine);
+                    structs.Append(Environment.NewLine);
+                    if (!isStruct)
+                    {
+                        sepStructs.Add(string.Format("{0}.cs", structName), structs);
+                    }
+                }
+
+                if (isEnum)
+                {
+                    var newLine = untabbedLine;
+
+                    newLine = newLine.Replace("typedef enum", "public enum");
+
+                    var match = structEnd.Match(newLine);
+                    if (match.Length > 0)
+                    {
+                        isEnum = false;
+                        newLine = enumEnd.Replace(newLine, "}");
+                        senum.Add(newLine);
+                        senum[0] += string.Format(" {0}", match.Groups[1].Value);
+                        foreach (var item in senum)
+                        {
+                            enums.Append(item);
+                            enums.Append(Environment.NewLine);
+                        }
+                        sepEnums.Add(string.Format("{0}.cs", match.Groups[1].Value), enums);
+                        senum = new List<string>();
+                    }
+                    else
+                    {
+                        senum.Add(newLine);
+                    }
+                }
+            }
+#>
+<# var manager = TemplateFileManager.Create(this); #>
+<# manager.StartNewFile("natives\\CmsCoreImports.cs"); #>
+/*
+*  auto generate dll import file 
+* 
+*/
+namespace VSec.DotNet.CmsCore.Wrapper.Natives
+{
+        #if !_WIN32
+        using NativeInteger = System.Int64;
+        using NativeUnsignedInteger = System.UInt64;
+        #else
+        using NativeInteger = System.Int32;
+        using NativeUnsignedInteger = System.UInt32;
+        #endif
+        using System;
+        using System.Collections.Generic;
+        using VSec.DotNet.CmsCore.Wrapper.Natives.Structs;
+        using VSec.DotNet.CmsCore.Wrapper.Natives.Interfaces;
+        using VSec.DotNet.CmsCore.Wrapper.Natives.Enums;
+        using System.Runtime.InteropServices;
+
+        public static class CmsCoreNativeImports
+        {
+            const string _cmsCoreLib = "cmsCoreDll";
+
+            static CmsCoreNativeImports()
+            {
+                NativeLibrary.SetDllImportResolver(typeof(CmsCoreNativeImports).Assembly, CmsCoreNativeAssemblyResolver.ImportResolver);
+            }
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate IntPtr CmsCallback(int size);
+
+            <#= sbFunction.ToString() #>
+        }
+    
+}
+ 
+<# 
+  foreach(var se in sepEnums) 
+  {
+      manager.StartNewFile(string.Format("natives\\Enums\\{0}",se.Key));
+#>
+/*
+*  auto generate dll import file 
+* enum  from c++ header file
+*
+*/
+namespace VSec.DotNet.CmsCore.Wrapper.Natives.Enums
+{
+        using System.Runtime.InteropServices;
+        using VSec.DotNet.CmsCore.Wrapper.Natives.Structs;
+        using VSec.DotNet.CmsCore.Wrapper.Natives.Interfaces;
+        //[StructLayout(LayoutKind.Sequential)]
+        <#= se.Value.ToString() #>
+}
+
+
+<# 
+  }
+
+  foreach(var sc in sepClasses) 
+  {
+        manager.StartNewFile(string.Format("natives\\Interfaces\\{0}",sc.Key)); #>
+/*
+*  auto generate dll import file 
+interfaces from c++ header file
+*
+*/
+namespace VSec.DotNet.CmsCore.Wrapper.Natives.Interfaces
+{
+        #if !_WIN32
+        using NativeInteger = System.Int64;
+        using NativeUnsignedInteger = System.UInt64;
+        #else
+        using NativeInteger = System.Int32;
+        using NativeUnsignedInteger = System.UInt32;
+        #endif
+
+        using System;
+        using System.Runtime.InteropServices;
+        using VSec.DotNet.CmsCore.Wrapper.Natives.Structs;
+        using VSec.DotNet.CmsCore.Wrapper.Natives.Enums;
+        using System.Text;
+        [StructLayout(LayoutKind.Sequential)]            
+        <#= sc.Value.ToString() #>
+}
+
+
+<# 
+  }
+
+  foreach(var ss in sepStructs)
+  {
+      manager.StartNewFile(string.Format("natives\\Structs\\{0}",ss.Key));
+#>
+/*
+*  auto generate dll import file 
+*  structure from c++ header file
+*
+*/
+namespace VSec.DotNet.CmsCore.Wrapper.Natives.Structs
+{
+        #if !_WIN32
+        using NativeInteger = System.Int64;
+        using NativeUnsignedInteger = System.UInt64;
+        #else
+        using NativeInteger = System.Int32;
+        using NativeUnsignedInteger = System.UInt32;
+        #endif
+        using System;
+        using VSec.DotNet.CmsCore.Wrapper.Natives.Interfaces;
+        using VSec.DotNet.CmsCore.Wrapper.Natives.Enums;
+        using System.Runtime.InteropServices;
+        [StructLayout(LayoutKind.Sequential)]
+        <#= ss.Value.ToString() #>
+    
+}
+<# }
+    manager.StartNewFile("natives\\CmsCoreNativeAssemblyResolver.cs");
+#>
+/*
+ */
+
+namespace VSec.DotNet.CmsCore.Wrapper.Natives
+{
+    using System;
+    using System.Reflection;
+    using System.Runtime.InteropServices;
+
+    /// <summary>
+    /// to resolve platform independent library assambly 
+    /// </summary>
+    public static class CmsCoreNativeAssemblyResolver
+    {
+        const string _cmsCoreLib = "cmsCoreDll";
+        const string _cmsCoreAdditionals = "CmsCoreAdditionals";
+        private static IntPtr _localCmsCoreNativeLibrary = IntPtr.Zero;
+        private static IntPtr _localCmsAddNativeLibrary = IntPtr.Zero;
+        public static IntPtr ImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+        {
+            //IntPtr libHandle = IntPtr.Zero;
+            if (libraryName == _cmsCoreLib)
+            {
+                if (_localCmsCoreNativeLibrary == IntPtr.Zero)
+                {
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        NativeLibrary.TryLoad("cmsCoreDll.dll", out _localCmsCoreNativeLibrary);
+                    }
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    {
+                        NativeLibrary.TryLoad("cmsCore", out _localCmsCoreNativeLibrary);
+                    }
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    {
+                        NativeLibrary.TryLoad("cmsCore.dylib", out _localCmsCoreNativeLibrary);
+                    }
+                }
+                return _localCmsCoreNativeLibrary;
+            }
+            if (libraryName == _cmsCoreAdditionals)
+            {
+                if (_localCmsAddNativeLibrary == IntPtr.Zero)
+                {
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        NativeLibrary.TryLoad("CmsCoreAdditionals.dll", out _localCmsAddNativeLibrary);
+                    }
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    {
+                        NativeLibrary.TryLoad("CmsCoreAdditionals", out _localCmsAddNativeLibrary);
+                    }
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    {
+                        NativeLibrary.TryLoad("CmsCoreAdditionals.dylib", out _localCmsAddNativeLibrary);
+                    }
+                }
+                return _localCmsAddNativeLibrary;
+            }
+            return IntPtr.Zero;
+        }
+
+    }
+
+}
+
+<# manager.Process(); #>

@@ -1,0 +1,67 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Platforms>AnyCPU;x64;x86</Platforms>
+    <RootNamespace>VSec.DotNet.CmsCore.Wrapper</RootNamespace>
+    <RuntimeIdentifiers>win-x64;linux-x64;osx-x64;ubuntu.16.04-x64</RuntimeIdentifiers>
+    <DefineConstants Condition="'$(RuntimeIdentifier)' == 'win-x64'">$(DefineConstants);RUNTIME_WINDOWS</DefineConstants>
+    <DefineConstants Condition="'$(RuntimeIdentifier)' == 'linux-x64'">$(DefineConstants);RUNTIME_LINUX</DefineConstants>
+    <DefineConstants Condition="'$(RuntimeIdentifier)' == 'ubuntu.16.04-x64'">$(DefineConstants);RUNTIME_LINUX</DefineConstants>
+    <DefineConstants Condition="'$(RuntimeIdentifier)' == 'osx-x64'">$(DefineConstants);RUNTIME_OSX</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>TRACE;_WIN32</DefineConstants>
+    <NoStdLib>false</NoStdLib>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <NoStdLib>false</NoStdLib>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <DefineConstants>TRACE;_X64</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Natives\keys\**" />
+    <EmbeddedResource Remove="Natives\keys\**" />
+    <None Remove="Natives\keys\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="CmsCoreExports.cs" />
+    <Compile Remove="natives\LibraryLoader.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Serilog.Extensions.Logging" Version="3.0.1" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="4.1.0" />
+    <PackageReference Include="System.Runtime" Version="4.3.1" />
+    <PackageReference Include="System.Runtime.Extensions" Version="4.3.1" />
+    <PackageReference Include="System.Runtime.InteropServices" Version="4.3.0" />
+    <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
+    <PackageReference Include="Serilog" Version="2.10.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+
+
+  <ItemGroup>
+    <None Update="CmsCoreExports.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CmsCoreExports.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+
+
+  <ItemGroup>
+    <Folder Include="natives\Enums\" />
+  </ItemGroup>
+
+</Project>

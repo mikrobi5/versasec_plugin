@@ -1,0 +1,34 @@
+{
+  "name": "Versasec - Smart Card Plugin",
+  "version": "1.3",
+  "description": "Plugin provides subset \n\r of smart card functionality",
+  "permissions": ["activeTab", "nativeMessaging"],
+  "options_page": "options.html",
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": true
+  },
+  "browser_action": {
+    "default_title": "Self Service console",
+    "default_popup": "popup.html",
+    "browser_style": true,
+    "default_icon": {
+        "16": "images/vsec_icon16.png",
+		"32": "images/vsec_icon32.png",
+		"48": "images/vsec_icon48.png",
+		"128": "images/vsec_icon128.png"
+    }
+  },
+  "icons": {
+    "16": "images/vsec_icon16.png",
+    "32": "images/vsec_icon32.png",
+    "48": "images/vsec_icon48.png",
+    "128": "images/vsec_icon128.png"
+  },
+  "externally_connectable": {
+    "matches": ["*://localhost/*", "*://*.test.de/*"] 
+  },
+  "manifest_version": 2
+  
+}
+

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "native-messaging-example-host": {
+      "commandName": "Project",
+      "commandLineArgs": "%   {\"id\":6,\"message\":{\"Command\":\"GCRS\"}}"
+    }
+  }
+}

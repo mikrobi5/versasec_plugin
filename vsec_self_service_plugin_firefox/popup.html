@@ -1,0 +1,77 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<!--
+ * Copyright 2013 The Chromium Authors. All rights reserved.  Use of this
+ * source code is governed by a BSD-style license that can be found in the
+ * LICENSE file.
+-->
+
+<html>
+  <head>
+    <script src='./background.js'></script>
+    <script src='./popup.js'></script>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+	<!-- <link rel="stylesheet" type="text/css" href="./mystyle.css"> -->
+	<style>
+    body{
+		background-color: lightblue;
+	}
+	
+	#id {
+	   border: 1px solid black;
+	}
+	
+	#body {
+		width:820px;
+		height:400px;   
+		border: 1px solid black;
+    }
+	
+	#response {
+		width:820px;
+		height:400px;   
+		border: 1px solid black;
+		overflow: scroll;
+	}
+	
+	#anchor {
+    /* allow the final child to be selected as an anchor node */
+    overflow-anchor: auto;
+
+    /* anchor nodes are required to have non-zero area */
+    height: 1px;
+}
+	
+    </style>
+  <body>
+  <div id="head">
+    <button id='connect-button'>Connect</button>
+	<div id="status" ></div>
+   </div>
+   <div id="body">
+   <div>
+     <button id='send-message-get-card-id'>Get CardId</button>
+	  <input id='cardId' type='text' />
+	  </div>
+	  <div>
+	 <button id='send-message-get-retry-counter'>Get Retry Counter</button>
+	  <input id='retryCounter' type='text' />
+	  </div>
+	  <div>
+	 <button id='send-message-login'>Login</button>
+	  <input id='login' type='text' />
+	  </div>
+	  <div>
+	 <button id='send-message-reset-pin'>Reset Pin</button>
+	  <input id='resetPin' type='text' />
+	  </div>
+	  <div>
+     <button id='send-message-set-new-pin'>Set new Pin</button>
+	  <input id='oldPin' type='text' />
+	  <input id='newPin' type='text' />
+	  </div>
+	</div>
+	<div id='response'>
+	  <div id="anchor"></div>
+	</div>
+  </body>
+</html>

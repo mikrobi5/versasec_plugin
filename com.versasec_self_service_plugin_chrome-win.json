@@ -1,0 +1,10 @@
+{
+  "name": "versasec.self_service_plugin",
+  "description": "plugin to provide smart card functionality into browser",
+  "path": ".\\native-messaging-example-host.exe",
+  "type": "stdio",
+  "allowed_origins": [
+	"chrome-extension://ahaijnliojgheoiiboelejgebahklgjh/",
+	"chrome-extension://obghcfnfpkolfcnpafgaoopepjdhkljn/"
+  ]
+}

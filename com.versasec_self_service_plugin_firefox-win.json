@@ -1,0 +1,9 @@
+{
+  "name": "versasec_self_service_plugin",
+  "description": "plugin to provide smart card functionality into browser",
+  "path": ".\\native-messaging-example-host.bat",
+  "type": "stdio",
+  "allowed_extensions": [
+    "SelfServiceConsole@versasec.com"
+  ]
+}
